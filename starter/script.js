@@ -83,8 +83,10 @@ const displayMovements = function (acc, sort = false) {
     const day = `${date.getDate()}`.padStart(2, 0);
     const month = `${date.getMonth() + 1}`.padStart(2, 0);
     const year = date.getFullYear();
+    const hour = `${date.getHours()}`.padStart(2, 0);
+    const min = `${date.getMinutes()}`.padStart(2, 0);
 
-    const displayDate = `${day}/${month}/${year}`;
+    const displayDate = `${day}/${month}/${year} ${hour}:${min}`;
 
     const html = `<div class="movements__row">
           <div class="movements__type movements__type--${type}">${
@@ -148,7 +150,7 @@ const createUsernames = function (accs) {
 };
 createUsernames(accounts);
 ///////////////////////////////////////////////////
-let currentAccount;
+let currentAccount, timer;
 
 // Experimenting with internationalisation
 const now = new Date();
@@ -158,6 +160,7 @@ const options = {
 };
 
 labelDate.textContent = new Intl.DateTimeFormat('en-GB', options).format(now);
+
 // EVENT HANDLER
 btnLogin.addEventListener('click', function (e) {
   // Prevents form from submitting
@@ -193,7 +196,8 @@ btnLogin.addEventListener('click', function (e) {
     inputLoginUsername.value = inputLoginPin.value = '';
     inputLoginPin.blur();
 
-    startLogOutTimer();
+    if (timer) clearInterval(timer);
+    timer = startLogOutTimer();
 
     btnLogin.style.display = 'none';
     bntLogout.style.display = 'block';
@@ -226,21 +230,17 @@ const updateUI = function (acc) {
 
   calcDisplaySummary(acc);
 };
-
+/////////////////////////////////////////////////////////////
 const startLogOutTimer = function () {
   // Set time to 5min
-  let time = 10;
+  let time = 600;
 
-  // Call the timer every second
-
-  const timer = setInterval(() => {
+  const tick = () => {
     const min = String(Math.trunc(time / 60)).padStart(2, 0);
     const sec = String(time % 60).padStart(2, 0);
     // In each call, print remaining time to UI
     labelTimer.textContent = `${min}:${sec}`;
 
-    // Decrease one second
-    time--; // time = time - 1
     // When 0, logout and stop timer
     if (time === 0) {
       clearInterval(timer);
@@ -253,13 +253,21 @@ const startLogOutTimer = function () {
       containerApp.style.opacity = 0;
       containerApp.style.display = 'grid';
     }
-  }, 1000);
+    // Decrease one second
+    time--; // time = time - 1
+  };
+  // Call the timer every second
+  tick();
+  const timer = setInterval(tick, 1000);
+  return timer;
 };
+/////////////////////////////////////////////////////////////
+
 // FAKE ALWAYS LOGGED IN
-let xxx;
-currentAccount = account1;
-updateUI(currentAccount);
-containerApp.style.opacity = 100;
+
+// currentAccount = account1;
+// updateUI(currentAccount);
+// containerApp.style.opacity = 100;
 
 btnTransfer.addEventListener('click', function (e) {
   e.preventDefault();
@@ -283,6 +291,11 @@ btnTransfer.addEventListener('click', function (e) {
     recieverAcc.movementsDates.push(new Date().toISOString());
     // Function that updates the UI
     updateUI(currentAccount);
+
+    // Reset timer
+
+    clearInterval(timer);
+    timer = startLogOutTimer();
   }
 });
 
@@ -297,6 +310,8 @@ btnLoan.addEventListener('click', function (e) {
       currentAccount.movementsDates.push(new Date().toISOString());
       // Update ui
       updateUI(currentAccount);
+      clearInterval(timer);
+      timer = startLogOutTimer();
     }, 2500);
   }
   inputLoanAmount.value = '';
